@@ -3,15 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Upload Images</title>
+    <title>Face Detection</title>
 </head>
 <body>
-    <h1>Upload Images</h1>
+    <h1>Face Detection</h1>
     <form method="POST" action="{{ url_for('upload_file') }}" enctype="multipart/form-data">
-        <div class="form-group">
-            <input type="file" class="form-control-file" name="file[]" multiple required>
-        </div>
-        <button type="submit" class="btn btn-primary">Upload</button>
+        <input type="file" name="file[]" multiple required>
+        <button type="submit">Upload</button>
     </form>
+    <hr>
+    <h2>Original Images:</h2>
+    <div>
+        {% for filename in uploaded_files %}
+            <img src="{{ url_for('uploaded_file', filename=filename) }}" alt="Original Image" style="float:left; margin-right: 10px;">
+        {% endfor %}
+    </div>
+    <h2>Processed Images:</h2>
+    <div>
+        {% for filename in processed_files %}
+            <img src="{{ url_for('uploaded_file', filename=filename) }}" alt="Processed Image" style="float:left; margin-right: 10px;">
+        {% endfor %}
+    </div>
 </body>
 </html>
