@@ -2,13 +2,15 @@ import os
 from flask import Flask, request, redirect, url_for, render_template, send_from_directory, flash
 from werkzeug.utils import secure_filename
 import cv2
+import random
+import string
 
 UPLOAD_FOLDER = 'uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.secret_key = "super secret key"
+app.secret_key = ''.join(random.choices(string.ascii_letters + string.digits, k=16))
 
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
@@ -38,32 +40,30 @@ def detect_faces(image_path, output_path):
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    uploaded_files = [f for f in os.listdir('uploads') if not f.startswith('processed_')]
+    processed_files = [f for f in os.listdir('uploads') if f.startswith('processed_')]
+    return render_template('index.html', uploaded_files=uploaded_files, processed_files=processed_files)
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
-    if 'file' not in request.files:
+    if 'file[]' not in request.files:
         flash('No file part')
         return redirect(request.url)
     
-    file = request.files['file']
-    if file.filename == '':
-        flash('No selected file')
-        return redirect(request.url)
-
-    if file and allowed_file(file.filename):
-        filename = secure_filename(file.filename)
-        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        output_path = os.path.join(app.config['UPLOAD_FOLDER'], 'processed_' + filename)
-        file.save(file_path)
-        
-        faces = detect_faces(file_path, output_path)
-        
-        flash(f'File successfully uploaded and processed. Detected {len(faces)} faces.')
-        return render_template('index.html', filename='processed_' + filename)
+    files = request.files.getlist('file[]')
+    for file in files:
+        if file.filename == '':
+            flash('No selected file')
+            return redirect(request.url)
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            output_path = os.path.join(app.config['UPLOAD_FOLDER'], 'processed_' + filename)
+            file.save(file_path)
+            detect_faces(file_path, output_path)
     
-    flash('Allowed file types are png, jpg, jpeg')
-    return redirect(request.url)
+    flash('Files successfully uploaded and processed.')
+    return redirect(url_for('index'))
 
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
